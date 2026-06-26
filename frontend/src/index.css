@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Custom utility styles or animations can go here if needed */
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #0d0e12;
+  color: #f3f4f6;
+  min-height: 100vh;
+}

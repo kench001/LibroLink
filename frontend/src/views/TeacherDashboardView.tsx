@@ -1,0 +1,717 @@
+import React, { useState, useEffect } from 'react';
+import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
+import { useBookViewModel } from '../viewmodels/useBookViewModel';
+import { useAssignmentViewModel } from '../viewmodels/useAssignmentViewModel';
+import type { Book } from '../models/api';
+import {
+  BookOpen,
+  Plus,
+  Edit2,
+  Trash2,
+  Share2,
+  LogOut,
+  X,
+  Upload,
+  Calendar,
+  User as UserIcon,
+  BookMarked,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
+
+export const TeacherDashboardView: React.FC = () => {
+  const { user, logout } = useAuthViewModel();
+  const { books, isLoading: booksLoading, fetchBooks, createBook, updateBook, deleteBook } = useBookViewModel();
+  const { assignments, students, isLoading: assignLoading, fetchAssignments, fetchStudents, assignBook, deleteAssignment } = useAssignmentViewModel();
+
+  const [activeTab, setActiveTab] = useState<'books' | 'assignments'>('books');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
+  // Form states
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+
+  const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+
+  useEffect(() => {
+    fetchBooks();
+    fetchAssignments();
+    fetchStudents();
+  }, [fetchBooks, fetchAssignments, fetchStudents]);
+
+  // Flash message handler
+  const triggerSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
+  const triggerError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(null), 4000);
+  };
+
+  // Image upload handling
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Create Book
+  const handleCreateBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !description.trim() || !coverImage) {
+      triggerError('Please fill in all fields and select a cover image');
+      return;
+    }
+    try {
+      await createBook(title, description, coverImage);
+      setIsCreateModalOpen(false);
+      setTitle('');
+      setDescription('');
+      setCoverImage(null);
+      setCoverImagePreview(null);
+      triggerSuccess('Book created successfully!');
+    } catch (err: any) {
+      triggerError(err.message || 'Failed to create book');
+    }
+  };
+
+  // Open Edit Modal
+  const openEditModal = (book: Book) => {
+    setSelectedBook(book);
+    setTitle(book.title);
+    setDescription(book.description);
+    setCoverImagePreview(`${backendUrl}${book.coverImage}`);
+    setCoverImage(null);
+    setIsEditModalOpen(true);
+  };
+
+  // Edit Book
+  const handleEditBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBook) return;
+    if (!title.trim() || !description.trim()) {
+      triggerError('Title and description are required');
+      return;
+    }
+    try {
+      await updateBook(selectedBook.id, title, description, coverImage || undefined);
+      setIsEditModalOpen(false);
+      setSelectedBook(null);
+      setTitle('');
+      setDescription('');
+      setCoverImage(null);
+      setCoverImagePreview(null);
+      triggerSuccess('Book updated successfully!');
+    } catch (err: any) {
+      triggerError(err.message || 'Failed to update book');
+    }
+  };
+
+  // Delete Book
+  const handleDeleteBook = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this book? This will also remove any active student assignments for it.')) return;
+    try {
+      await deleteBook(id);
+      fetchAssignments(); // Refresh assignments list
+      triggerSuccess('Book deleted successfully');
+    } catch (err: any) {
+      triggerError(err.message || 'Failed to delete book');
+    }
+  };
+
+  // Open Assign Modal
+  const openAssignModal = (book: Book) => {
+    setSelectedBook(book);
+    setSelectedStudentId('');
+    setIsAssignModalOpen(true);
+  };
+
+  // Assign Book
+  const handleAssignBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBook || !selectedStudentId) {
+      triggerError('Please select a student');
+      return;
+    }
+    try {
+      await assignBook(parseInt(selectedStudentId), selectedBook.id);
+      setIsAssignModalOpen(false);
+      setSelectedBook(null);
+      setSelectedStudentId('');
+      triggerSuccess('Book assigned successfully!');
+    } catch (err: any) {
+      triggerError(err.message || 'Failed to assign book (check if already assigned)');
+    }
+  };
+
+  // Remove Assignment
+  const handleDeleteAssignment = async (id: number) => {
+    if (!window.confirm('Are you sure you want to unassign this book?')) return;
+    try {
+      await deleteAssignment(id);
+      triggerSuccess('Book unassigned successfully');
+    } catch (err: any) {
+      triggerError(err.message || 'Failed to remove assignment');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      
+      {/* Navigation bar */}
+      <nav className="border-b border-slate-900 bg-slate-900/40 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-tr from-purple-600 to-indigo-500 rounded-lg text-white">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <span className="font-extrabold text-xl bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                LibroLink
+              </span>
+              <span className="text-xs bg-purple-500/20 text-purple-300 font-semibold px-2.5 py-0.5 rounded-full border border-purple-500/30 uppercase tracking-wider">
+                Teacher Panel
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-slate-200">Hello, {user?.username}</p>
+                <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-all flex items-center space-x-2 text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline">Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Flash Notifications */}
+        {successMessage && (
+          <div className="fixed bottom-5 right-5 z-50 p-4 rounded-xl bg-emerald-950/90 border border-emerald-500/30 text-emerald-200 shadow-2xl flex items-center space-x-2 animate-bounce">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="fixed bottom-5 right-5 z-50 p-4 rounded-xl bg-red-950/90 border border-red-500/30 text-red-200 shadow-2xl flex items-center space-x-2 animate-pulse">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 space-y-4 md:space-y-0">
+          <div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">Dashboard Overview</h2>
+            <p className="text-slate-400 mt-1">Manage library materials and student readers assignments.</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-purple-900/20 flex items-center space-x-2 transition-all transform hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Create New Book</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Toggle */}
+        <div className="border-b border-slate-900 mb-8 flex space-x-8">
+          <button
+            onClick={() => setActiveTab('books')}
+            className={`pb-4 text-base font-semibold transition-all relative ${
+              activeTab === 'books' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Books List ({books.length})</span>
+            {activeTab === 'books' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full"></span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('assignments')}
+            className={`pb-4 text-base font-semibold transition-all relative ${
+              activeTab === 'assignments' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Active Assignments ({assignments.length})</span>
+            {activeTab === 'assignments' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 rounded-full"></span>
+            )}
+          </button>
+        </div>
+
+        {/* Books Tab Content */}
+        {activeTab === 'books' && (
+          <div>
+            {booksLoading && books.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <p>Loading library catalogs...</p>
+              </div>
+            ) : books.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 border border-dashed border-slate-900 rounded-3xl bg-slate-900/10 text-slate-500 text-center px-4">
+                <BookMarked className="w-16 h-16 text-slate-800 mb-4" />
+                <h3 className="text-lg font-bold text-slate-400 mb-1">Your Library is Empty</h3>
+                <p className="max-w-sm mb-6 text-sm">Add educational or storybooks to the catalog so you can assign them to students.</p>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-purple-400 hover:border-purple-500/30 rounded-xl transition-all"
+                >
+                  Create First Book
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {books.map((book) => (
+                  <div
+                    key={book.id}
+                    className="bg-slate-900/40 border border-slate-900 hover:border-slate-800/80 rounded-2xl overflow-hidden transition-all flex flex-col group shadow-md"
+                  >
+                    <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
+                      <img
+                        src={`${backendUrl}${book.coverImage}`}
+                        alt={book.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                      
+                      {/* Top Action Tags */}
+                      <button
+                        onClick={() => openAssignModal(book)}
+                        className="absolute bottom-4 right-4 py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg shadow-lg flex items-center space-x-1.5 transition-all transform group-hover:-translate-y-0.5"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Assign Book</span>
+                      </button>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-100 group-hover:text-purple-400 transition-colors line-clamp-1">
+                          {book.title}
+                        </h3>
+                        <p className="text-slate-400 text-sm mt-2 line-clamp-3 leading-relaxed">
+                          {book.description}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-slate-950 mt-5 pt-4">
+                        <span className="text-xs text-slate-500 inline-flex items-center space-x-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{new Date(book.createdAt).toLocaleDateString()}</span>
+                        </span>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => openEditModal(book)}
+                            className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-purple-400 rounded-lg transition-colors border border-slate-900"
+                            title="Edit details"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBook(book.id)}
+                            className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-red-400 rounded-lg transition-colors border border-slate-900"
+                            title="Delete book"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Assignments Tab Content */}
+        {activeTab === 'assignments' && (
+          <div>
+            {assignLoading && assignments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <p>Retrieving assignments history...</p>
+              </div>
+            ) : assignments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 border border-dashed border-slate-900 rounded-3xl bg-slate-900/10 text-slate-500 text-center px-4">
+                <Share2 className="w-16 h-16 text-slate-800 mb-4" />
+                <h3 className="text-lg font-bold text-slate-400 mb-1">No Active Assignments</h3>
+                <p className="max-w-sm mb-6 text-sm">Assign your library books to student profiles to monitor their reading materials.</p>
+              </div>
+            ) : (
+              <div className="bg-slate-900/20 border border-slate-900 rounded-2xl overflow-hidden shadow-md">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-900 bg-slate-900/40 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <th className="py-4 px-6">Book Cover & Title</th>
+                        <th className="py-4 px-6">Assigned Student</th>
+                        <th className="py-4 px-6">Assigned By</th>
+                        <th className="py-4 px-6">Assigned Date</th>
+                        <th className="py-4 px-6 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900 text-sm">
+                      {assignments.map((assignment) => (
+                        <tr key={assignment.id} className="hover:bg-slate-900/20 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-14 bg-slate-950 rounded overflow-hidden flex-shrink-0 border border-slate-900">
+                                <img
+                                  src={`${backendUrl}${assignment.book.coverImage}`}
+                                  alt={assignment.book.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop';
+                                  }}
+                                />
+                              </div>
+                              <span className="font-bold text-slate-100">{assignment.book.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-300 font-semibold border border-purple-500/20">
+                              <UserIcon className="w-3.5 h-3.5 mr-1.5" />
+                              {assignment.student?.username}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-slate-400">
+                            {assignment.assignedBy.username}
+                          </td>
+                          <td className="py-4 px-6 text-slate-400">
+                            {new Date(assignment.assignedAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            <button
+                              onClick={() => handleDeleteAssignment(assignment.id)}
+                              className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/20 text-red-400 border border-red-500/20 hover:border-red-500/30 rounded-lg text-xs font-semibold transition-all inline-flex items-center space-x-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Unassign</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL: Create Book */}
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Plus className="w-5 h-5 text-purple-400" />
+                  <span>Create New Book</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setCoverImagePreview(null);
+                    setCoverImage(null);
+                  }}
+                  className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateBook} className="p-6 space-y-6">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Book Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="E.g. Introduction to Physics"
+                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Description</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Provide a detailed description of the syllabus or book contents..."
+                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Cover Image</label>
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-1">
+                      <div className="w-full h-36 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-purple-500/40 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          required
+                          onChange={handleImageChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                        <span className="text-xs text-slate-400">Drag or click to upload cover</span>
+                        <span className="text-[10px] text-slate-600 mt-1">Supports PNG, JPG, JPEG</span>
+                      </div>
+                    </div>
+                    {coverImagePreview && (
+                      <div className="w-24 h-36 bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+                        <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateModalOpen(false);
+                      setCoverImagePreview(null);
+                      setCoverImage(null);
+                    }}
+                    className="px-4 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-900/20 transition-all"
+                  >
+                    Create Catalog
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Edit Book */}
+        {isEditModalOpen && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Edit2 className="w-5 h-5 text-purple-400" />
+                  <span>Edit Book Catalog</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedBook(null);
+                    setCoverImagePreview(null);
+                    setCoverImage(null);
+                  }}
+                  className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditBook} className="p-6 space-y-6">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Book Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Description</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Cover Image (Optional)</label>
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-1">
+                      <div className="w-full h-36 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-purple-500/40 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                        <span className="text-xs text-slate-400">Click to replace current cover</span>
+                        <span className="text-[10px] text-slate-600 mt-1">Leave empty to keep existing image</span>
+                      </div>
+                    </div>
+                    {coverImagePreview && (
+                      <div className="w-24 h-36 bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+                        <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setSelectedBook(null);
+                      setCoverImagePreview(null);
+                      setCoverImage(null);
+                    }}
+                    className="px-4 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-900/20 transition-all"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Assign Book */}
+        {isAssignModalOpen && selectedBook && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Share2 className="w-5 h-5 text-purple-400" />
+                  <span>Assign Book Catalog</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsAssignModalOpen(false);
+                    setSelectedBook(null);
+                    setSelectedStudentId('');
+                  }}
+                  className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAssignBook} className="p-6 space-y-6">
+                
+                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 flex items-start space-x-3">
+                  <div className="w-12 h-16 bg-slate-950 rounded border border-slate-800 overflow-hidden flex-shrink-0">
+                    <img src={`${backendUrl}${selectedBook.coverImage}`} alt={selectedBook.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-200 line-clamp-1">{selectedBook.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-normal">{selectedBook.description}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Student</label>
+                  <select
+                    required
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all cursor-pointer"
+                  >
+                    <option value="" disabled className="bg-slate-900 text-slate-500">Choose student profile...</option>
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id.toString()} className="bg-slate-900 text-slate-200">
+                        {student.username}
+                      </option>
+                    ))}
+                  </select>
+                  {students.length === 0 && (
+                    <p className="text-xs text-amber-400 mt-2 flex items-center">
+                      <Info className="w-3.5 h-3.5 mr-1" />
+                      <span>No students registered. You must have students created first.</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAssignModalOpen(false);
+                      setSelectedBook(null);
+                      setSelectedStudentId('');
+                    }}
+                    className="px-4 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-900/20 transition-all disabled:opacity-50"
+                    disabled={!selectedStudentId}
+                  >
+                    Assign
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+};
+export default TeacherDashboardView;
