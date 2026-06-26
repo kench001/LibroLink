@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
 import { useBookViewModel } from '../viewmodels/useBookViewModel';
 import { useAssignmentViewModel } from '../viewmodels/useAssignmentViewModel';
@@ -18,6 +18,9 @@ import {
   Info,
   CheckCircle2,
   AlertCircle,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react';
 
 export const TeacherDashboardView: React.FC = () => {
@@ -28,6 +31,12 @@ export const TeacherDashboardView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'books' | 'assignments'>('books');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Search & Sort States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-desc' | 'date-asc'>('date-desc');
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,6 +62,42 @@ export const TeacherDashboardView: React.FC = () => {
     fetchAssignments();
     fetchStudents();
   }, [fetchBooks, fetchAssignments, fetchStudents]);
+
+  // Click outside to close sort dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSortDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Compute filtered & sorted books list
+  const filteredAndSortedBooks = books
+    .filter((book) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return (
+        book.title.toLowerCase().includes(query) ||
+        book.description.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === 'title-asc') {
+        return a.title.localeCompare(b.title);
+      } else if (sortBy === 'title-desc') {
+        return b.title.localeCompare(a.title);
+      } else if (sortBy === 'date-desc') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (sortBy === 'date-asc') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return 0;
+    });
 
   // Flash message handler
   const triggerSuccess = (msg: string) => {
@@ -300,69 +345,192 @@ export const TeacherDashboardView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {books.map((book) => (
-                  <div
-                    key={book.id}
-                    className="bg-slate-900/40 border border-slate-900 hover:border-slate-800/80 rounded-2xl overflow-hidden transition-all flex flex-col group shadow-md"
-                  >
-                    <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
-                      <img
-                        src={`${backendUrl}${book.coverImage}`}
-                        alt={book.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
-                      
-                      {/* Top Action Tags */}
+              <div className="space-y-6">
+                {/* Search & Sort controls bar */}
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/20 border border-slate-900 p-4 rounded-2xl">
+                  <div className="relative w-full sm:max-w-md">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
+                      <Search className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search books by title or description..."
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all text-sm"
+                    />
+                    {searchQuery && (
                       <button
-                        onClick={() => openAssignModal(book)}
-                        className="absolute bottom-4 right-4 py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg shadow-lg flex items-center space-x-1.5 transition-all transform group-hover:-translate-y-0.5"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-300 transition-colors"
                       >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>Assign Book</span>
+                        <X className="w-4 h-4" />
                       </button>
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-slate-100 group-hover:text-purple-400 transition-colors line-clamp-1">
-                          {book.title}
-                        </h3>
-                        <p className="text-slate-400 text-sm mt-2 line-clamp-3 leading-relaxed">
-                          {book.description}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-slate-950 mt-5 pt-4">
-                        <span className="text-xs text-slate-500 inline-flex items-center space-x-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>{new Date(book.createdAt).toLocaleDateString()}</span>
+                  <div className="flex items-center space-x-3 w-full sm:w-auto shrink-0 relative" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                      className="flex items-center justify-between space-x-2 text-slate-400 bg-slate-950/40 border border-slate-800 px-3.5 py-2.5 rounded-xl text-sm w-full sm:w-auto hover:bg-slate-900 hover:border-slate-700 transition-all cursor-pointer font-medium"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <SlidersHorizontal className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Sort:</span>
+                        <span className="text-slate-200">
+                          {sortBy === 'title-asc' && 'Title (A-Z)'}
+                          {sortBy === 'title-desc' && 'Title (Z-A)'}
+                          {sortBy === 'date-desc' && 'Date Created (Newest)'}
+                          {sortBy === 'date-asc' && 'Date Created (Oldest)'}
                         </span>
-                        
-                        <div className="flex items-center space-x-2">
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isSortDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 py-1 overflow-hidden animate-fadeIn">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('title-asc');
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                            sortBy === 'title-asc'
+                              ? 'bg-purple-600/10 text-purple-400 font-semibold'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
+                          }`}
+                        >
+                          Title (A-Z)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('title-desc');
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                            sortBy === 'title-desc'
+                              ? 'bg-purple-600/10 text-purple-400 font-semibold'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
+                          }`}
+                        >
+                          Title (Z-A)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('date-desc');
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                            sortBy === 'date-desc'
+                              ? 'bg-purple-600/10 text-purple-400 font-semibold'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
+                          }`}
+                        >
+                          Date Created (Newest)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSortBy('date-asc');
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                            sortBy === 'date-asc'
+                              ? 'bg-purple-600/10 text-purple-400 font-semibold'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
+                          }`}
+                        >
+                          Date Created (Oldest)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {filteredAndSortedBooks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 border border-dashed border-slate-900 rounded-3xl bg-slate-900/10 text-slate-500 text-center px-4">
+                    <div className="p-4 bg-slate-900/40 rounded-full text-slate-600 mb-4 border border-slate-800">
+                      <Search className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-400 mb-1">No Books Found</h3>
+                    <p className="max-w-sm mb-6 text-sm text-slate-500">No books match your search query: <span className="text-purple-400 font-semibold">"{searchQuery}"</span>.</p>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-purple-400 hover:border-purple-500/30 rounded-xl transition-all font-medium text-sm"
+                    >
+                      Clear Search Filter
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredAndSortedBooks.map((book) => (
+                      <div
+                        key={book.id}
+                        className="bg-slate-900/40 border border-slate-900 hover:border-slate-800/80 rounded-2xl overflow-hidden transition-all flex flex-col group shadow-md"
+                      >
+                        <div className="aspect-[3/4] bg-slate-950 relative overflow-hidden">
+                          <img
+                            src={`${backendUrl}${book.coverImage}`}
+                            alt={book.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                          
+                          {/* Top Action Tags */}
                           <button
-                            onClick={() => openEditModal(book)}
-                            className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-purple-400 rounded-lg transition-colors border border-slate-900"
-                            title="Edit details"
+                            onClick={() => openAssignModal(book)}
+                            className="absolute bottom-4 right-4 py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg shadow-lg flex items-center space-x-1.5 transition-all transform group-hover:-translate-y-0.5"
                           >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBook(book.id)}
-                            className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-red-400 rounded-lg transition-colors border border-slate-900"
-                            title="Delete book"
-                          >
-                            <Trash2 className="w-4 h-4" />
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>Assign Book</span>
                           </button>
                         </div>
+
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="text-xl font-bold text-slate-100 group-hover:text-purple-400 transition-colors line-clamp-1">
+                              {book.title}
+                            </h3>
+                            <p className="text-slate-400 text-sm mt-2 line-clamp-3 leading-relaxed">
+                              {book.description}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-slate-950 mt-5 pt-4">
+                            <span className="text-xs text-slate-500 inline-flex items-center space-x-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>{new Date(book.createdAt).toLocaleDateString()}</span>
+                            </span>
+                            
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => openEditModal(book)}
+                                className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-purple-400 rounded-lg transition-colors border border-slate-900"
+                                title="Edit details"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBook(book.id)}
+                                className="p-2 bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-red-400 rounded-lg transition-colors border border-slate-900"
+                                title="Delete book"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -492,24 +660,29 @@ export const TeacherDashboardView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Cover Image</label>
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-1">
-                      <div className="w-full h-36 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-purple-500/40 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          required
-                          onChange={handleImageChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
-                        <span className="text-xs text-slate-400">Drag or click to upload cover</span>
-                        <span className="text-[10px] text-slate-600 mt-1">Supports PNG, JPG, JPEG</span>
-                      </div>
-                    </div>
-                    {coverImagePreview && (
-                      <div className="w-24 h-36 bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+                  <div className="relative w-full h-48 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl overflow-hidden hover:border-purple-500/40 transition-all group flex flex-col items-center justify-center cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      required
+                      onChange={handleImageChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                    />
+                    
+                    {coverImagePreview ? (
+                      <div className="absolute inset-0 w-full h-full">
                         <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
+                          <Upload className="w-8 h-8 text-purple-400 mb-2 transform -translate-y-1 group-hover:translate-y-0 transition-transform" />
+                          <span className="text-xs font-bold text-slate-200">Click or Drag to replace cover</span>
+                          <span className="text-[10px] text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center pointer-events-none p-6">
+                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                        <span className="text-sm font-semibold text-slate-300">Drag or click to upload cover</span>
+                        <span className="text-xs text-slate-500 mt-1">Supports PNG, JPG, JPEG</span>
                       </div>
                     )}
                   </div>
@@ -586,23 +759,28 @@ export const TeacherDashboardView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Cover Image (Optional)</label>
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-1">
-                      <div className="w-full h-36 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-purple-500/40 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
-                        <span className="text-xs text-slate-400">Click to replace current cover</span>
-                        <span className="text-[10px] text-slate-600 mt-1">Leave empty to keep existing image</span>
-                      </div>
-                    </div>
-                    {coverImagePreview && (
-                      <div className="w-24 h-36 bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+                  <div className="relative w-full h-48 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-xl overflow-hidden hover:border-purple-500/40 transition-all group flex flex-col items-center justify-center cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                    />
+                    
+                    {coverImagePreview ? (
+                      <div className="absolute inset-0 w-full h-full">
                         <img src={coverImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
+                          <Upload className="w-8 h-8 text-purple-400 mb-2 transform -translate-y-1 group-hover:translate-y-0 transition-transform" />
+                          <span className="text-xs font-bold text-slate-200">Click or Drag to replace cover</span>
+                          <span className="text-[10px] text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center pointer-events-none p-6">
+                        <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                        <span className="text-sm font-semibold text-slate-300">Drag or click to upload cover</span>
+                        <span className="text-xs text-slate-500 mt-1">Supports PNG, JPG, JPEG</span>
                       </div>
                     )}
                   </div>

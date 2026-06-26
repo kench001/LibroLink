@@ -5,6 +5,7 @@ import type { User } from '../models/api';
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isCheckingAuth: boolean; // Added separate startup state
   isLoading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
@@ -17,19 +18,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true); // Starts true for initial check
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Starts false for local operations
   const [error, setError] = useState<string | null>(null);
 
   const checkAuthStatus = async () => {
     try {
-      setIsLoading(true);
+      setIsCheckingAuth(true);
       const response = await apiClient.get<User>('/auth/me');
       setUser(response.data);
     } catch (err) {
       setUser(null);
-      // It's normal to get 401 on startup if not logged in, so don't set error
     } finally {
-      setIsLoading(false);
+      setIsCheckingAuth(false);
     }
   };
 
@@ -88,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated,
+        isCheckingAuth,
         isLoading,
         error,
         login,

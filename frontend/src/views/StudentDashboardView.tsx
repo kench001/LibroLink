@@ -99,7 +99,7 @@ export const StudentDashboardView: React.FC = () => {
                 key={assignment.id}
                 className="bg-slate-900/40 border border-slate-900 hover:border-slate-800/85 rounded-2xl overflow-hidden transition-all flex flex-col group shadow-md"
               >
-                <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
+                <div className="aspect-[3/4] bg-slate-950 relative overflow-hidden">
                   <img
                     src={`${backendUrl}${assignment.book.coverImage}`}
                     alt={assignment.book.title}
