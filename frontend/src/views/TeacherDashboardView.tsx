@@ -121,6 +121,10 @@ export const TeacherDashboardView: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        triggerError('Selected file exceeds the 5 MB file size limit.');
+        return;
+      }
       setCoverImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, MinLength, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, Matches, IsOptional } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -15,4 +15,8 @@ export class RegisterDto {
   @IsNotEmpty()
   @Matches(/^(teacher|student)$/i, { message: 'Role must be either teacher or student' })
   role: string;
+
+  @IsString()
+  @IsOptional()
+  teacherCode?: string;
 }

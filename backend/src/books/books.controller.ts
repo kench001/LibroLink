@@ -49,6 +49,9 @@ export class BooksController {
           callback(null, `cover-${uniqueSuffix}${ext}`);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB file size limit
+      },
       fileFilter: (req, file, callback) => {
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
           return callback(new BadRequestException('Only image files are allowed!'), false);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -10,13 +10,25 @@ export class BooksService {
   constructor(private prisma: PrismaService) {}
 
   async create(createBookDto: CreateBookDto, coverImage: string) {
-    return this.prisma.book.create({
-      data: {
-        title: createBookDto.title,
-        description: createBookDto.description,
-        coverImage,
-      },
-    });
+    try {
+      return await this.prisma.book.create({
+        data: {
+          title: createBookDto.title,
+          description: createBookDto.description,
+          coverImage,
+        },
+      });
+    } catch (error) {
+      const filePath = join(process.cwd(), coverImage);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (unlinkError) {
+          console.error(`Failed to clean up orphaned file: ${filePath}`, unlinkError);
+        }
+      }
+      throw error;
+    }
   }
 
   async findAll() {

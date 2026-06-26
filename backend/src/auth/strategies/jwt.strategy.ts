@@ -17,7 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: cookieExtractor,
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'super-secret-key-change-in-production',
+      secretOrKey: process.env.JWT_SECRET || (() => {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('FATAL: JWT_SECRET must be defined in production');
+        }
+        console.warn('WARNING: Using fallback JWT_SECRET. Set JWT_SECRET in production.');
+        return 'super-secret-key-change-in-production';
+      })(),
     });
   }
 

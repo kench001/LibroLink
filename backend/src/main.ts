@@ -5,9 +5,21 @@ import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { join } from 'path';
 import * as fs from 'fs';
+import { PrismaClientExceptionFilter } from './prisma/prisma-exception.filter';
 
 async function bootstrap() {
+  // Validate critical environment variables
+  if (!process.env.JWT_SECRET) {
+    console.warn('WARNING: JWT_SECRET environment variable is not defined. Server starting with fallback.');
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new Error('FATAL ERROR: DATABASE_URL environment variable is not defined.');
+  }
+
   const app = await NestFactory.create(AppModule);
+
+  // Bind the Prisma exception filter globally
+  app.useGlobalFilters(new PrismaClientExceptionFilter());
 
   // Ensure uploads directory exists
   const uploadsDir = join(process.cwd(), 'uploads');

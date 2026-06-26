@@ -8,6 +8,7 @@ export const LoginView: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'teacher' | 'student'>('student');
+  const [teacherCode, setTeacherCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -30,7 +31,7 @@ export const LoginView: React.FC = () => {
       if (isLogin) {
         await login(username, password);
       } else {
-        await register(username, password, role);
+        await register(username, password, role, teacherCode);
       }
     } catch (err) {
       // Errors are handled in auth viewmodel and stored in context
@@ -127,6 +128,28 @@ export const LoginView: React.FC = () => {
             </div>
           </div>
 
+          {/* Teacher Code (Register only, teacher role) */}
+          {!isLogin && role === 'teacher' && (
+            <div className="animate-fadeIn">
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Teacher Signup Code
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={teacherCode}
+                  onChange={(e) => setTeacherCode(e.target.value)}
+                  placeholder="Enter teacher verification code"
+                  className="w-full pl-4 pr-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                For testing, use: <code className="text-purple-400 bg-purple-950/40 px-1.5 py-0.5 rounded">MyPrivateTeacherKey123</code>
+              </p>
+            </div>
+          )}
+
           {/* Role selector (Register only) */}
           {!isLogin && (
             <div className="animate-fadeIn">
@@ -188,18 +211,18 @@ export const LoginView: React.FC = () => {
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
           <button
             onClick={handleToggleMode}
-            className="text-sm text-slate-400 hover:text-purple-400 transition-colors inline-flex items-center space-x-1"
+            className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-950/20 hover:bg-slate-950/40 hover:border-purple-500/30 text-sm text-slate-400 hover:text-purple-300 transition-all inline-flex items-center justify-center gap-1.5"
             disabled={isLoading}
           >
             {isLogin ? (
               <>
                 <span>New to LibroLink?</span>
-                <span className="text-purple-400 font-medium">Create an account</span>
+                <span className="text-purple-400 font-medium hover:text-purple-300">Create an account</span>
               </>
             ) : (
               <>
                 <span>Already have an account?</span>
-                <span className="text-purple-400 font-medium">Sign in</span>
+                <span className="text-purple-400 font-medium hover:text-purple-300">Sign in</span>
               </>
             )}
           </button>

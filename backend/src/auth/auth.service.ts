@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -13,7 +13,16 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { username, password, role } = registerDto;
+    const { username, password, role, teacherCode } = registerDto;
+
+    const normalizedRole = role.toLowerCase();
+
+    if (normalizedRole === 'teacher') {
+      const expectedCode = process.env.TEACHER_SIGNUP_CODE || 'DefaultSecuredCode123';
+      if (teacherCode !== expectedCode) {
+        throw new UnauthorizedException('Invalid or missing teacher verification code');
+      }
+    }
 
     const existingUser = await this.prisma.user.findUnique({
       where: { username },
@@ -29,7 +38,7 @@ export class AuthService {
       data: {
         username,
         password: hashedPassword,
-        role: role.toLowerCase(), // Normalize to lowercase (teacher/student)
+        role: normalizedRole,
       },
       select: {
         id: true,

@@ -9,7 +9,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'super-secret-key-change-in-production',
+      secret: process.env.JWT_SECRET || (() => {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('FATAL: JWT_SECRET must be defined in production');
+        }
+        console.warn('WARNING: Using fallback JWT_SECRET. Set JWT_SECRET in production.');
+        return 'super-secret-key-change-in-production';
+      })(),
       signOptions: { expiresIn: '1d' },
     }),
   ],

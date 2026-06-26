@@ -53,11 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (username: string, password: string, role: 'teacher' | 'student') => {
+  const register = async (username: string, password: string, role: 'teacher' | 'student', teacherCode?: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.post<User>('/auth/register', { username, password, role });
+      const response = await apiClient.post<User>('/auth/register', { username, password, role, teacherCode });
       setUser(response.data);
     } catch (err: any) {
       const serverMessage = err.response?.data?.message;
