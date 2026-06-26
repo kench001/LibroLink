@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuthViewModel } from './viewmodels/useAuthViewModel';
 import LoginView from './views/LoginView';
 import TeacherDashboardView from './views/TeacherDashboardView';
 import StudentDashboardView from './views/StudentDashboardView';
+import SplashScreen from './views/SplashScreen';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isCheckingAuth } = useAuthViewModel();
@@ -42,10 +43,16 @@ const AppContent: React.FC = () => {
 };
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        {showSplash ? (
+          <SplashScreen onFinish={() => setShowSplash(false)} />
+        ) : (
+          <AppContent />
+        )}
       </AuthProvider>
     </Router>
   );

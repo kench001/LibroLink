@@ -42,6 +42,8 @@ export const TeacherDashboardView: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
+  const [unassignTargetId, setUnassignTargetId] = useState<number | null>(null);
 
   // Form states
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -50,6 +52,8 @@ export const TeacherDashboardView: React.FC = () => {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
+  const studentDropdownRef = useRef<HTMLDivElement>(null);
 
   const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
@@ -68,6 +72,9 @@ export const TeacherDashboardView: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsSortDropdownOpen(false);
+      }
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target as Node)) {
+        setIsStudentDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -214,9 +221,10 @@ export const TeacherDashboardView: React.FC = () => {
 
   // Remove Assignment
   const handleDeleteAssignment = async (id: number) => {
-    if (!window.confirm('Are you sure you want to unassign this book?')) return;
     try {
       await deleteAssignment(id);
+      setIsUnassignModalOpen(false);
+      setUnassignTargetId(null);
       triggerSuccess('Book unassigned successfully');
     } catch (err: any) {
       triggerError(err.message || 'Failed to remove assignment');
@@ -595,7 +603,10 @@ export const TeacherDashboardView: React.FC = () => {
                           </td>
                           <td className="py-4 px-6 text-right">
                             <button
-                              onClick={() => handleDeleteAssignment(assignment.id)}
+                              onClick={() => {
+                                setUnassignTargetId(assignment.id);
+                                setIsUnassignModalOpen(true);
+                              }}
                               className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/20 text-red-400 border border-red-500/20 hover:border-red-500/30 rounded-lg text-xs font-semibold transition-all inline-flex items-center space-x-1"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -846,19 +857,51 @@ export const TeacherDashboardView: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Student</label>
-                  <select
-                    required
-                    value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all cursor-pointer"
-                  >
-                    <option value="" disabled className="bg-slate-900 text-slate-500">Choose student profile...</option>
-                    {students.map((student) => (
-                      <option key={student.id} value={student.id.toString()} className="bg-slate-900 text-slate-200">
-                        {student.username}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={studentDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsStudentDropdownOpen(!isStudentDropdownOpen)}
+                      className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-sm text-left flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <span className={selectedStudentId ? 'text-slate-200' : 'text-slate-500'}>
+                        {selectedStudentId
+                          ? students.find(s => s.id === parseInt(selectedStudentId))?.username || 'Choose student profile...'
+                          : 'Choose student profile...'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isStudentDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isStudentDropdownOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 py-1 overflow-hidden animate-fadeIn max-h-60 overflow-y-auto">
+                        {students.length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-slate-500">No students registered</div>
+                        ) : (
+                          students.map((student) => (
+                            <button
+                              key={student.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedStudentId(student.id.toString());
+                                setIsStudentDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                                selectedStudentId === student.id.toString()
+                                  ? 'bg-purple-600/10 text-purple-400 font-semibold'
+                                  : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
+                              }`}
+                            >
+                              <span className="flex items-center space-x-2">
+                                <UserIcon className="w-4 h-4" />
+                                <span>{student.username}</span>
+                              </span>
+                              {selectedStudentId === student.id.toString() && (
+                                <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {students.length === 0 && (
                     <p className="text-xs text-amber-400 mt-2 flex items-center">
                       <Info className="w-3.5 h-3.5 mr-1" />
@@ -894,6 +937,58 @@ export const TeacherDashboardView: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Unassign Confirmation */}
+        {isUnassignModalOpen && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                  <span>Unassign Book</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsUnassignModalOpen(false);
+                    setUnassignTargetId(null);
+                  }}
+                  className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 flex items-center space-x-3">
+                  <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0" />
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    Are you sure you want to unassign this book? The student will lose access to it.
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUnassignModalOpen(false);
+                      setUnassignTargetId(null);
+                    }}
+                    className="px-4 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => unassignTargetId && handleDeleteAssignment(unassignTargetId)}
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-900/20 transition-all"
+                  >
+                    Yes, Unassign
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
