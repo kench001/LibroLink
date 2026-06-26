@@ -110,13 +110,6 @@ export const StudentDashboardView: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
                   
-                  <button
-                    onClick={() => setSelectedAssignment(assignment)}
-                    className="absolute bottom-4 right-4 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg flex items-center space-x-1.5 transition-all transform group-hover:-translate-y-0.5"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View Book</span>
-                  </button>
                 </div>
 
                 <div className="p-5 flex-1 flex flex-col justify-between">
@@ -141,6 +134,14 @@ export const StudentDashboardView: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => setSelectedAssignment(assignment)}
+                    className="mt-3 w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg flex items-center justify-center space-x-2 transition-all"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>View Book</span>
+                  </button>
                 </div>
               </div>
             ))}
@@ -149,11 +150,11 @@ export const StudentDashboardView: React.FC = () => {
 
         {/* MODAL: Read Book Details */}
         {selectedAssignment && (
-          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col md:flex-row">
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 lg:p-8">
+            <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col md:flex-row">
               
               {/* Left Column: Cover Image */}
-              <div className="md:w-2/5 aspect-[3/4] md:aspect-auto bg-slate-950 relative border-b md:border-b-0 md:border-r border-slate-800">
+              <div className="md:w-[30%] aspect-[3/4] md:aspect-auto bg-slate-950 relative border-b md:border-b-0 md:border-r border-slate-800">
                 <img
                   src={`${backendUrl}${selectedAssignment.book.coverImage}`}
                   alt={selectedAssignment.book.title}
@@ -165,39 +166,39 @@ export const StudentDashboardView: React.FC = () => {
               </div>
 
               {/* Right Column: Book Details */}
-              <div className="md:w-3/5 p-8 flex flex-col justify-between">
+              <div className="md:w-[70%] p-8 sm:p-10 lg:p-12 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-2xl font-black text-white">{selectedAssignment.book.title}</h3>
+                  <div className="flex items-start justify-between mb-6">
+                    <h3 className="text-3xl sm:text-4xl font-black text-white leading-tight">{selectedAssignment.book.title}</h3>
                     <button
                       onClick={() => setSelectedAssignment(null)}
-                      className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-850 text-slate-500 hover:text-slate-300 transition-colors ml-4"
+                      className="p-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors ml-4 shrink-0"
                     >
-                      <X className="w-4.5 h-4.5" />
+                      <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950/50 border border-slate-950 flex flex-col space-y-1.5 mb-6 text-xs text-slate-400">
-                    <div className="flex items-center space-x-1.5">
-                      <UserIcon className="w-3.5 h-3.5 text-indigo-400" />
+                  <div className="p-4 sm:p-5 rounded-xl bg-slate-950/50 border border-slate-950 flex flex-col space-y-2 mb-8 text-sm sm:text-base text-slate-400">
+                    <div className="flex items-center space-x-2">
+                      <UserIcon className="w-4 h-4 text-indigo-400" />
                       <span>Assigned by: <strong className="text-slate-300">{selectedAssignment.assignedBy.username}</strong></span>
                     </div>
-                    <div className="flex items-center space-x-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-indigo-400" />
                       <span>Assignment Date: <strong className="text-slate-300">{new Date(selectedAssignment.assignedAt).toLocaleDateString()}</strong></span>
                     </div>
                   </div>
 
-                  <h5 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Description</h5>
-                  <p className="text-slate-300 text-sm leading-relaxed overflow-y-auto max-h-[160px] pr-2">
+                  <h5 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Description</h5>
+                  <p className="text-slate-300 text-base sm:text-lg leading-relaxed overflow-y-auto max-h-[300px] pr-2">
                     {selectedAssignment.book.description}
                   </p>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-slate-800 flex justify-end">
+                <div className="mt-10 pt-6 border-t border-slate-800 flex justify-end">
                   <button
                     onClick={() => setSelectedAssignment(null)}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-950/40 transition-colors"
+                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-base font-semibold shadow-lg shadow-indigo-950/40 transition-colors"
                   >
                     Close
                   </button>

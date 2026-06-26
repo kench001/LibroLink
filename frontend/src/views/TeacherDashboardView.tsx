@@ -495,14 +495,6 @@ export const TeacherDashboardView: React.FC = () => {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
                           
-                          {/* Top Action Tags */}
-                          <button
-                            onClick={() => openAssignModal(book)}
-                            className="absolute bottom-4 right-4 py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg shadow-lg flex items-center space-x-1.5 transition-all transform group-hover:-translate-y-0.5"
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>Assign Book</span>
-                          </button>
                         </div>
 
                         <div className="p-5 flex-1 flex flex-col justify-between">
@@ -538,6 +530,14 @@ export const TeacherDashboardView: React.FC = () => {
                               </button>
                             </div>
                           </div>
+
+                          <button
+                            onClick={() => openAssignModal(book)}
+                            className="mt-3 w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl shadow-lg flex items-center justify-center space-x-2 transition-all"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            <span>Assign Book</span>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -690,7 +690,7 @@ export const TeacherDashboardView: React.FC = () => {
                         <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
                           <Upload className="w-8 h-8 text-purple-400 mb-2 transform -translate-y-1 group-hover:translate-y-0 transition-transform" />
                           <span className="text-xs font-bold text-slate-200">Click or Drag to replace cover</span>
-                          <span className="text-[10px] text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
+                          <span className="text-xs text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
                         </div>
                       </div>
                     ) : (
@@ -788,7 +788,7 @@ export const TeacherDashboardView: React.FC = () => {
                         <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
                           <Upload className="w-8 h-8 text-purple-400 mb-2 transform -translate-y-1 group-hover:translate-y-0 transition-transform" />
                           <span className="text-xs font-bold text-slate-200">Click or Drag to replace cover</span>
-                          <span className="text-[10px] text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
+                          <span className="text-xs text-slate-400 mt-1">Supports PNG, JPG, JPEG</span>
                         </div>
                       </div>
                     ) : (
@@ -829,11 +829,11 @@ export const TeacherDashboardView: React.FC = () => {
         {/* MODAL: Assign Book */}
         {isAssignModalOpen && selectedBook && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-                <h3 className="text-xl font-bold text-white flex items-center space-x-2">
-                  <Share2 className="w-5 h-5 text-purple-400" />
-                  <span>Assign Book Catalog</span>
+            <div className="flex flex-col w-full max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl animate-fadeIn">
+              <div className="flex items-center justify-between px-10 py-6 border-b border-slate-800 flex-shrink-0">
+                <h3 className="text-3xl font-bold text-white flex items-center space-x-3">
+                  <Share2 className="w-7 h-7 text-purple-400" />
+                  <span>Assign Book</span>
                 </h3>
                 <button
                   onClick={() => {
@@ -841,43 +841,43 @@ export const TeacherDashboardView: React.FC = () => {
                     setSelectedBook(null);
                     setSelectedStudentId('');
                   }}
-                  className="p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="p-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleAssignBook} className="p-6 space-y-6">
+              <form onSubmit={handleAssignBook} className="p-10 space-y-10 overflow-y-auto">
                 
-                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 flex items-start space-x-3">
-                  <div className="w-12 h-16 bg-slate-950 rounded border border-slate-800 overflow-hidden flex-shrink-0">
+                <div className="p-6 rounded-xl bg-slate-950/50 border border-slate-800 flex items-start space-x-5">
+                  <div className="w-20 h-28 bg-slate-950 rounded border border-slate-800 overflow-hidden flex-shrink-0">
                     <img src={`${backendUrl}${selectedBook.coverImage}`} alt={selectedBook.title} className="w-full h-full object-cover" />
                   </div>
-                  <div>
-                    <h4 className="font-bold text-slate-200 line-clamp-1">{selectedBook.title}</h4>
-                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-normal">{selectedBook.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xl font-bold text-slate-200 truncate">{selectedBook.title}</h4>
+                    <p className="text-base text-slate-500 mt-2 leading-relaxed">{selectedBook.description}</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Student</label>
+                  <label className="block text-base font-semibold text-slate-300 uppercase tracking-wider mb-4">Select Student</label>
                   <div className="relative" ref={studentDropdownRef}>
                     <button
                       type="button"
                       onClick={() => setIsStudentDropdownOpen(!isStudentDropdownOpen)}
-                      className="w-full px-4 py-3 bg-slate-950/40 border border-slate-800 rounded-xl text-sm text-left flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-6 py-5 bg-slate-950/40 border border-slate-800 rounded-xl text-lg text-left flex items-center justify-between transition-all hover:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                       <span className={selectedStudentId ? 'text-slate-200' : 'text-slate-500'}>
                         {selectedStudentId
                           ? students.find(s => s.id === parseInt(selectedStudentId))?.username || 'Choose student profile...'
                           : 'Choose student profile...'}
                       </span>
-                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isStudentDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-6 h-6 text-slate-500 transition-transform duration-200 ${isStudentDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isStudentDropdownOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 py-1 overflow-hidden animate-fadeIn max-h-60 overflow-y-auto">
+                      <div className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 py-1 animate-fadeIn max-h-80 overflow-y-auto">
                         {students.length === 0 ? (
-                          <div className="px-4 py-3 text-sm text-slate-500">No students registered</div>
+                          <div className="px-6 py-4 text-lg text-slate-500">No students registered</div>
                         ) : (
                           students.map((student) => (
                             <button
@@ -887,18 +887,18 @@ export const TeacherDashboardView: React.FC = () => {
                                 setSelectedStudentId(student.id.toString());
                                 setIsStudentDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                              className={`w-full text-left px-6 py-4 text-lg transition-colors flex items-center justify-between ${
                                 selectedStudentId === student.id.toString()
                                   ? 'bg-purple-600/10 text-purple-400 font-semibold'
                                   : 'text-slate-300 hover:bg-slate-800/60 hover:text-purple-400'
                               }`}
                             >
-                              <span className="flex items-center space-x-2">
-                                <UserIcon className="w-4 h-4" />
+                              <span className="flex items-center space-x-4">
+                                <UserIcon className="w-6 h-6" />
                                 <span>{student.username}</span>
                               </span>
                               {selectedStudentId === student.id.toString() && (
-                                <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                                <CheckCircle2 className="w-6 h-6 text-purple-400" />
                               )}
                             </button>
                           ))
@@ -907,20 +907,20 @@ export const TeacherDashboardView: React.FC = () => {
                     )}
                   </div>
                   {students.length === 0 && (
-                    <p className="text-xs text-amber-400 mt-2 flex items-center">
-                      <Info className="w-3.5 h-3.5 mr-1" />
+                    <p className="text-base text-amber-400 mt-4 flex items-center">
+                      <Info className="w-5 h-5 mr-2" />
                       <span>No students registered. You must have students created first.</span>
                     </p>
                   )}
                   {isAlreadyAssigned && (
-                    <p className="text-xs text-red-400 mt-2 flex items-center bg-red-950/20 border border-red-500/20 p-2.5 rounded-lg">
-                      <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0 text-red-400" />
+                    <p className="text-base text-red-400 mt-4 flex items-center bg-red-950/20 border border-red-500/20 p-4 rounded-lg">
+                      <AlertCircle className="w-6 h-6 mr-2 flex-shrink-0 text-red-400" />
                       <span>This book is already assigned to {students.find(s => s.id === parseInt(selectedStudentId))?.username || 'this student'}.</span>
                     </p>
                   )}
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end space-x-5 pt-8 border-t border-slate-800">
                   <button
                     type="button"
                     onClick={() => {
@@ -928,13 +928,13 @@ export const TeacherDashboardView: React.FC = () => {
                       setSelectedBook(null);
                       setSelectedStudentId('');
                     }}
-                    className="px-4 py-2.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-sm font-semibold transition-colors"
+                    className="px-8 py-4 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-xl border border-slate-800 text-lg font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-900/20 transition-all disabled:opacity-50"
+                    className="px-9 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-lg font-semibold shadow-lg shadow-purple-900/20 transition-all disabled:opacity-50"
                     disabled={!selectedStudentId || isAlreadyAssigned}
                   >
                     Assign
