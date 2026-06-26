@@ -44,6 +44,10 @@ export const TeacherDashboardView: React.FC = () => {
 
   const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
+  const isAlreadyAssigned = selectedBook && selectedStudentId
+    ? assignments.some(a => a.studentId === parseInt(selectedStudentId) && a.bookId === selectedBook.id)
+    : false;
+
   useEffect(() => {
     fetchBooks();
     fetchAssignments();
@@ -683,6 +687,12 @@ export const TeacherDashboardView: React.FC = () => {
                       <span>No students registered. You must have students created first.</span>
                     </p>
                   )}
+                  {isAlreadyAssigned && (
+                    <p className="text-xs text-red-400 mt-2 flex items-center bg-red-950/20 border border-red-500/20 p-2.5 rounded-lg">
+                      <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0 text-red-400" />
+                      <span>This book is already assigned to {students.find(s => s.id === parseInt(selectedStudentId))?.username || 'this student'}.</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
@@ -700,7 +710,7 @@ export const TeacherDashboardView: React.FC = () => {
                   <button
                     type="submit"
                     className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-900/20 transition-all disabled:opacity-50"
-                    disabled={!selectedStudentId}
+                    disabled={!selectedStudentId || isAlreadyAssigned}
                   >
                     Assign
                   </button>
